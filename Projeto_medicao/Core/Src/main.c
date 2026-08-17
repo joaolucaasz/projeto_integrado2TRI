@@ -114,74 +114,67 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  /* USER CODE BEGIN 2 */
+	    HAL_ADC_Start(&hadc1);
+	    /* USER CODE END 2 */
 
-	  if(HAL_GPIO_ReadPin(FILTRO_GPIO_Port, FILTRO_Pin) == GPIO_PIN_RESET){
-		  filtro_inicio = 1;
-		  indice = 0;
-		  soma =0;
-		  HAL_Delay(200);
+	    /* Infinite loop */
+	    /* USER CODE BEGIN WHILE */
+	    while (1)
+	    {
+
+	  	  	  HAL_ADC_Start(&hadc1);
+
+	  	  	  if(filtro_inicio){
+	  	  	  HAL_ADC_Start(&hadc1);
+
+
+	  	      if (HAL_ADC_PollForConversion(&hadc1, 100) == HAL_OK)
+	  	      {
+	  	    	  adc = HAL_ADC_GetValue(&hadc1);
+
+	  	    	   soma +=adc;
+
+	  	    	   contador++;
+	  	      }
+
+	  	      HAL_ADC_Stop(&hadc1);
+
+	  	      HAL_Delay(100);
+
+	  	      if(contador >= NUM_AMOSTRAS){
+
+	  	    	  media = soma / NUM_AMOSTRAS;
+	  	    	  filtro_inicio = 0;
+
+	  	    	  contador++;
+	    	    	  continue;
 	  }
 
-	  	  HAL_ADC_Start(&hadc1);
+	  	     	 //aplicação do filtro
+	  	     	 tensao = (media* 3.3f) / 4095.0f;
+	  	     	 porcentagem = (media * 100.0f) / 4095.0f;
 
-	  	  if(filtro_inicio){
-	  	  HAL_ADC_Start(&hadc1);
-
-
-	      if (HAL_ADC_PollForConversion(&hadc1, 100) == HAL_OK)
-	      {
-	    	  adc = HAL_ADC_GetValue(&hadc1);
-
-	    	   soma +=adc;
-
-	    	   contador++;
-	      }
-
-	      HAL_ADC_Stop(&hadc1);
-
-	      HAL_Delay(100);
-
-	      if(contador < NUM_AMOSTRAS){
-	    	  media = soma / NUM_AMOSTRAS;
-	    	  filtro_inicio = 0;
-
-  	    	  contador++;
-  	    	  continue;
-}
-
-	     	 //aplicação do filtro
-	     	 tensao = (media* 3.3f) / 4095.0f;
-	     	 porcentagem = (media * 100.0f) / 4095.0f;
-
-	     	 if (porcentagem <= 33 ){
-	     		 nivel = "ruim";
-	     	 }
-	     	 else if ( porcentagem >= 34 && porcentagem <= 66){
-	     		 nivel = "medio";
-	     	 }
-
-	     	 else {
-	     		 nivel = "Bom";
-	     	 }
-
-	     	 //(destino, "txt",  os valor);
-	     	 sprintf(json,"{\"adc\":%d,\"tensao\":%.2f,\"porcentagem\":%.1f,"
-	     			 "\"niveldesatisfacao\":\"%s\" }\r\n",media,
-	     			 tensao, porcentagem, nivel);
+	  	     	 //(destino, "txt",  os valor);
+	  	     	 sprintf(json,"{\"adc\":%d,\"tensao\":%.2f,\"porcentagem\":%.1f,"
+	  	     			 "\"niveldesatisfacao\":\"%s\" }\r\n",media,
+	  	     			 tensao, porcentagem, nivel);
 
 
-	     	 //função q enviar os dados pelo usb cdc, que é pela porta com virtual criada pelo bglh
-	     	 CDC_Transmit_FS((uint8_t*)json,strlen(json)); //cast
+	  	     	 //função q enviar os dados pelo usb cdc, que é pela porta com virtual criada pelo bglh
+	  	     	 CDC_Transmit_FS((uint8_t*)json,strlen(json)); //cast
 
-	     	 HAL_Delay(1000);
-
+	  	     	 HAL_Delay(1000);
+	  	  	  }
+	    }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
   }
-  }
-  /* USER CODE END 3 */
 }
+  /* USER CODE END 3 */
+
 
 /**
   * @brief System Clock Configuration
@@ -281,17 +274,10 @@ static void MX_ADC1_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
-
-  /*Configure GPIO pin : FILTRO_Pin */
-  GPIO_InitStruct.Pin = FILTRO_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(FILTRO_GPIO_Port, &GPIO_InitStruct);
 
 }
 
