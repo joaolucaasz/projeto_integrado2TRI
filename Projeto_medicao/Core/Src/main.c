@@ -56,10 +56,11 @@ ADC_HandleTypeDef hadc1;
 
  uint16_t leituras[NUM_AMOSTRAS];
  uint32_t soma = 0;
+
  uint16_t media = 0;
  uint8_t indice = 0; //var que indica qual posi do vetor sera substituida
  uint8_t contador = 0;
- uint8_t filtro_inicio = 0;
+uint8_t filtro_inicio =0;
 
 /* USER CODE END PV */
 
@@ -115,13 +116,9 @@ int main(void)
   while (1)
   {
 	  /* USER CODE BEGIN 2 */
-	    HAL_ADC_Start(&hadc1);
 	    /* USER CODE END 2 */
-
-	    /* Infinite loop */
 	    /* USER CODE BEGIN WHILE */
-	    while (1)
-	    {
+
 
 	  	  	  HAL_ADC_Start(&hadc1);
 
@@ -133,6 +130,9 @@ int main(void)
 	  	      {
 	  	    	  adc = HAL_ADC_GetValue(&hadc1);
 
+	  	    	 soma -= leituras[indice];
+
+	  	    	  leituras[indice] = adc;
 	  	    	   soma +=adc;
 
 	  	    	   contador++;
@@ -163,10 +163,10 @@ int main(void)
 
 	  	     	 //função q enviar os dados pelo usb cdc, que é pela porta com virtual criada pelo bglh
 	  	     	 CDC_Transmit_FS((uint8_t*)json,strlen(json)); //cast
-
+	  	     	HAL_ADC_Stop(&hadc1);
 	  	     	 HAL_Delay(1000);
 	  	  	  }
-	    }
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
