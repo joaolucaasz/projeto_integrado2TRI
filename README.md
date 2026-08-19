@@ -33,6 +33,9 @@ projeto_integrado2TRI/
 │   ├── ComunicacaoUSB.csproj
 │   └── Program.cs
 │
+├── Medições/
+│   └── ...
+│
 ├── Servidor/
 │   ├── classify.py
 │   ├── index.html
@@ -138,4 +141,5 @@ O projeto busca aplicar conhecimentos de diferentes áreas do desenvolvimento de
 ## 📚 Projeto Integrado — 2º Trimestre
 
 Projeto desenvolvido para fins acadêmicos no curso de **Desenvolvimento de Sistemas**.
+
 
