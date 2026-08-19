@@ -24,8 +24,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "usbd_cdc_if.h"
-
-ADC_HandleTypeDef hadc1;
+#include <stdio.h>
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -115,66 +115,66 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  /* USER CODE BEGIN 2 */
-	    /* USER CODE END 2 */
-	    /* USER CODE BEGIN WHILE */
+      if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_10) == GPIO_PIN_RESET)
+      {
+          filtro_inicio = 1;
+      }
+      else
+      {
+          filtro_inicio = 0;
+      }
 
+      HAL_ADC_Start(&hadc1);
 
-	  	  	  HAL_ADC_Start(&hadc1);
+      if (HAL_ADC_PollForConversion(&hadc1, 100) == HAL_OK)
+      {
+          adc = HAL_ADC_GetValue(&hadc1);
 
-	  	  	  if(filtro_inicio){
-	  	  	  HAL_ADC_Start(&hadc1);
+          if (filtro_inicio)
+          {
+              soma = soma - leituras[indice];
 
+              leituras[indice] = adc;
 
-	  	      if (HAL_ADC_PollForConversion(&hadc1, 100) == HAL_OK)
-	  	      {
-	  	    	  adc = HAL_ADC_GetValue(&hadc1);
+              soma = soma + leituras[indice];
 
-	  	    	 soma -= leituras[indice];
+              indice++;
 
-	  	    	  leituras[indice] = adc;
-	  	    	   soma +=adc;
+              if (indice >= NUM_AMOSTRAS)
+              {
+                  indice = 0;
+              }
 
-	  	    	   contador++;
-	  	      }
+              if (contador < NUM_AMOSTRAS)
+              {
+                  contador++;
+              }
 
-	  	      HAL_ADC_Stop(&hadc1);
+              media = soma / contador;
 
-	  	      HAL_Delay(100);
+              adc = media;
+          }
 
-	  	      if(contador >= NUM_AMOSTRAS){
+          tensao = (adc * 3.3f) / 4095.0f;
 
-	  	    	  media = soma / NUM_AMOSTRAS;
-	  	    	  filtro_inicio = 0;
+          sprintf(
+              json,
+              "{\"adc\":%d,\"tensao\":%.2f}\r\n",
+              adc,
+              tensao
+          );
 
-	  	    	  contador++;
-	    	    	  continue;
-	  }
+          CDC_Transmit_FS(
+              (uint8_t*)json,
+              strlen(json)
+          );
+      }
 
-	  	     	 //aplicação do filtro
-	  	     	 tensao = (media* 3.3f) / 4095.0f;
-	  	     	 porcentagem = (media * 100.0f) / 4095.0f;
+      HAL_ADC_Stop(&hadc1);
 
-	  	     	 //(destino, "txt",  os valor);
-	  	     	 sprintf(json,"{\"adc\":%d,\"tensao\":%.2f,\"porcentagem\":%.1f,"
-	  	     			 "\"niveldesatisfacao\":\"%s\" }\r\n",media,
-	  	     			 tensao, porcentagem, nivel);
-
-
-	  	     	 //função q enviar os dados pelo usb cdc, que é pela porta com virtual criada pelo bglh
-	  	     	 CDC_Transmit_FS((uint8_t*)json,strlen(json)); //cast
-	  	     	HAL_ADC_Stop(&hadc1);
-	  	     	 HAL_Delay(1000);
-	  	  	  }
-
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-
+      HAL_Delay(1000);
   }
 }
-  /* USER CODE END 3 */
-
 
 /**
   * @brief System Clock Configuration
@@ -274,10 +274,17 @@ static void MX_ADC1_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+
+  /*Configure GPIO pin : BOTAO_Pin */
+  GPIO_InitStruct.Pin = BOTAO_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(BOTAO_GPIO_Port, &GPIO_InitStruct);
 
 }
 
