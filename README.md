@@ -139,7 +139,3 @@ O projeto busca aplicar conhecimentos de diferentes áreas do desenvolvimento de
 
 Projeto desenvolvido para fins acadêmicos no curso de **Desenvolvimento de Sistemas**.
 
-### 👨‍💻 Integrantes
-
-**João Lucas Fernandes Costa**
-**Isabela Pivoto**
