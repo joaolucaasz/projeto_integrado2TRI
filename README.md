@@ -33,9 +33,6 @@ projeto_integrado2TRI/
 │   ├── ComunicacaoUSB.csproj
 │   └── Program.cs
 │
-├── Medições/
-│   └── ...
-│
 ├── Servidor/
 │   ├── classify.py
 │   ├── index.html
