@@ -54,13 +54,15 @@ ADC_HandleTypeDef hadc1;
 
  char json[100]; //max de letras q ele pode armazenar dentro do json
 
- uint16_t leituras[NUM_AMOSTRAS];
+ uint16_t leituras[NUM_AMOSTRAS] = {0};
  uint32_t soma = 0;
 
  uint16_t media = 0;
- uint8_t indice = 0; //var que indica qual posi do vetor sera substituida
+ uint8_t indice = 0;
  uint8_t contador = 0;
-uint8_t filtro_inicio =0;
+
+ uint8_t filtro_ativo = 0;
+ GPIO_PinState botao_anterior = GPIO_PIN_SET;
 
 /* USER CODE END PV */
 
@@ -115,14 +117,30 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-      if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_10) == GPIO_PIN_RESET)
+      GPIO_PinState botao_atual =
+          HAL_GPIO_ReadPin(BOTAO_GPIO_Port, BOTAO_Pin);
+
+      if (botao_anterior == GPIO_PIN_SET &&
+          botao_atual == GPIO_PIN_RESET)
       {
-          filtro_inicio = 1;
+          filtro_ativo = !filtro_ativo;
+
+          if (filtro_ativo)
+          {
+              soma = 0;
+              indice = 0;
+              contador = 0;
+
+              for (uint8_t i = 0; i < NUM_AMOSTRAS; i++)
+              {
+                  leituras[i] = 0;
+              }
+          }
+
+          HAL_Delay(100);
       }
-      else
-      {
-          filtro_inicio = 0;
-      }
+
+      botao_anterior = botao_atual;
 
       HAL_ADC_Start(&hadc1);
 
@@ -130,13 +148,13 @@ int main(void)
       {
           adc = HAL_ADC_GetValue(&hadc1);
 
-          if (filtro_inicio)
+          if (filtro_ativo)
           {
-              soma = soma - leituras[indice];
+              soma -= leituras[indice];
 
               leituras[indice] = adc;
 
-              soma = soma + leituras[indice];
+              soma += leituras[indice];
 
               indice++;
 
@@ -157,17 +175,9 @@ int main(void)
 
           tensao = (adc * 3.3f) / 4095.0f;
 
-          sprintf(
-              json,
-              "{\"adc\":%d,\"tensao\":%.2f}\r\n",
-              adc,
-              tensao
-          );
+          sprintf(json, "{\"adc\":%d,\"tensao\":%.2f,\"filtro\":%d}\r\n",adc,tensao,filtro_ativo);
 
-          CDC_Transmit_FS(
-              (uint8_t*)json,
-              strlen(json)
-          );
+          CDC_Transmit_FS((uint8_t*)json,strlen(json));
       }
 
       HAL_ADC_Stop(&hadc1);
@@ -175,7 +185,6 @@ int main(void)
       HAL_Delay(1000);
   }
 }
-
 /**
   * @brief System Clock Configuration
   * @retval None
