@@ -24,8 +24,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "usbd_cdc_if.h"
-
-ADC_HandleTypeDef hadc1;
+#include <stdio.h>
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,13 +54,15 @@ ADC_HandleTypeDef hadc1;
 
  char json[100]; //max de letras q ele pode armazenar dentro do json
 
- uint16_t leituras[NUM_AMOSTRAS];
+ uint16_t leituras[NUM_AMOSTRAS] = {0};
  uint32_t soma = 0;
 
  uint16_t media = 0;
- uint8_t indice = 0; //var que indica qual posi do vetor sera substituida
+ uint8_t indice = 0;
  uint8_t contador = 0;
-uint8_t filtro_inicio =0;
+
+ uint8_t filtro_ativo = 0;
+ GPIO_PinState botao_anterior = GPIO_PIN_SET;
 
 /* USER CODE END PV */
 
@@ -115,67 +117,74 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  /* USER CODE BEGIN 2 */
-	    /* USER CODE END 2 */
-	    /* USER CODE BEGIN WHILE */
+      GPIO_PinState botao_atual =
+          HAL_GPIO_ReadPin(BOTAO_GPIO_Port, BOTAO_Pin);
 
+      if (botao_anterior == GPIO_PIN_SET &&
+          botao_atual == GPIO_PIN_RESET)
+      {
+          filtro_ativo = !filtro_ativo;
 
-	  	  	  HAL_ADC_Start(&hadc1);
+          if (filtro_ativo)
+          {
+              soma = 0;
+              indice = 0;
+              contador = 0;
 
-	  	  	  if(filtro_inicio){
-	  	  	  HAL_ADC_Start(&hadc1);
+              for (uint8_t i = 0; i < NUM_AMOSTRAS; i++)
+              {
+                  leituras[i] = 0;
+              }
+          }
 
+          HAL_Delay(100);
+      }
 
-	  	      if (HAL_ADC_PollForConversion(&hadc1, 100) == HAL_OK)
-	  	      {
-	  	    	  adc = HAL_ADC_GetValue(&hadc1);
+      botao_anterior = botao_atual;
 
-	  	    	 soma -= leituras[indice];
+      HAL_ADC_Start(&hadc1);
 
-	  	    	  leituras[indice] = adc;
-	  	    	   soma +=adc;
+      if (HAL_ADC_PollForConversion(&hadc1, 100) == HAL_OK)
+      {
+          adc = HAL_ADC_GetValue(&hadc1);
 
-	  	    	   contador++;
-	  	      }
+          if (filtro_ativo)
+          {
+              soma -= leituras[indice];
 
-	  	      HAL_ADC_Stop(&hadc1);
+              leituras[indice] = adc;
 
-	  	      HAL_Delay(100);
+              soma += leituras[indice];
 
-	  	      if(contador >= NUM_AMOSTRAS){
+              indice++;
 
-	  	    	  media = soma / NUM_AMOSTRAS;
-	  	    	  filtro_inicio = 0;
+              if (indice >= NUM_AMOSTRAS)
+              {
+                  indice = 0;
+              }
 
-	  	    	  contador++;
-	    	    	  continue;
-	  }
+              if (contador < NUM_AMOSTRAS)
+              {
+                  contador++;
+              }
 
-	  	     	 //aplicação do filtro
-	  	     	 tensao = (media* 3.3f) / 4095.0f;
-	  	     	 porcentagem = (media * 100.0f) / 4095.0f;
+              media = soma / contador;
 
-	  	     	 //(destino, "txt",  os valor);
-	  	     	 sprintf(json,"{\"adc\":%d,\"tensao\":%.2f,\"porcentagem\":%.1f,"
-	  	     			 "\"niveldesatisfacao\":\"%s\" }\r\n",media,
-	  	     			 tensao, porcentagem, nivel);
+              adc = media;
+          }
 
+          tensao = (adc * 3.3f) / 4095.0f;
 
-	  	     	 //função q enviar os dados pelo usb cdc, que é pela porta com virtual criada pelo bglh
-	  	     	 CDC_Transmit_FS((uint8_t*)json,strlen(json)); //cast
-	  	     	HAL_ADC_Stop(&hadc1);
-	  	     	 HAL_Delay(1000);
-	  	  	  }
+          sprintf(json, "{\"adc\":%d,\"tensao\":%.2f,\"filtro\":%d}\r\n",adc,tensao,filtro_ativo);
 
-    /* USER CODE END WHILE */
+          CDC_Transmit_FS((uint8_t*)json,strlen(json));
+      }
 
-    /* USER CODE BEGIN 3 */
+      HAL_ADC_Stop(&hadc1);
 
+      HAL_Delay(1000);
   }
 }
-  /* USER CODE END 3 */
-
-
 /**
   * @brief System Clock Configuration
   * @retval None
@@ -274,10 +283,17 @@ static void MX_ADC1_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+
+  /*Configure GPIO pin : BOTAO_Pin */
+  GPIO_InitStruct.Pin = BOTAO_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(BOTAO_GPIO_Port, &GPIO_InitStruct);
 
 }
 
