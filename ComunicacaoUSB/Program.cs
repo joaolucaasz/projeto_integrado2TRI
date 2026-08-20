@@ -11,9 +11,9 @@ class Program
 
     static void Main()
     {
-        porta = new SerialPort("COM16", 115200);
+        porta = new SerialPort("COM15", 115200);
 
-        // Como o STM32 envia \r\n
+        
         porta.NewLine = "\n";
         porta.ReadTimeout = 1000;
 
@@ -45,7 +45,7 @@ class Program
             Console.WriteLine("Recebido do STM32:");
             Console.WriteLine(dados);
 
-            // Converte o JSON recebido para um objeto
+          
             DadosSTM32? leitura =
                 JsonSerializer.Deserialize<DadosSTM32>(dados);
 
@@ -55,7 +55,7 @@ class Program
                 return;
             }
 
-            // Converte ADC (0-4095) para porcentagem (0-100)
+           
             double satisfacao =
                 (leitura.adc * 100.0) / 4095.0;
 
@@ -66,8 +66,8 @@ class Program
             Console.WriteLine("Filtro: " +
                               (leitura.filtro == 1 ? "Ativado" : "Desativado"));
 
-            // Envia a medição para o servidor
-            await EnviarParaServidor(satisfacao);
+            
+            await EnviarParaServidor(satisfacao, leitura.filtro);
         }
         catch (Exception erro)
         {
@@ -76,13 +76,14 @@ class Program
         }
     }
 
-    static async Task EnviarParaServidor(double satisfacao)
+    static async Task EnviarParaServidor(double satisfacao, int filtro)
     {
         try
         {
             var dados = new
             {
-                satisfacao = Math.Round(satisfacao, 1)
+                satisfacao = Math.Round(satisfacao, 1),
+                filtro = filtro
             };
 
             string json =

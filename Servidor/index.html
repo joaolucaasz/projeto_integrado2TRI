@@ -323,6 +323,12 @@
 
                 </div>
 
+                <div class="meta-row">
+                    <span id="statusFiltro">
+                        Filtro: --
+                    </span>
+                </div>
+
 
                 <!-- BARRA DE SATISFAÇÃO -->
 
@@ -499,7 +505,7 @@
                 <p>
                     O painel consulta a API
                     automaticamente a cada
-                    <strong>3 segundos</strong>.
+                    <strong>1 segundo</strong>.
                 </p>
 
             </section>
@@ -520,6 +526,9 @@
 
         const badgeAtual =
             document.getElementById("badgeAtual");
+
+        const statusFiltro =
+            document.getElementById("statusFiltro");
 
         const gaugePointer =
             document.getElementById("gaugePointer");
@@ -711,6 +720,13 @@
                 atualizarClassificacao(
                     medicao.classificacao
                 );
+
+                if (medicao.filtro !== undefined) {
+                    statusFiltro.innerText =
+                        medicao.filtro == 1
+                            ? "Filtro: ATIVADO"
+                            : "Filtro: DESATIVADO";
+                }
 
 
                 // ==================================
@@ -1021,11 +1037,11 @@
         atualizarTudo();
 
 
-        // Atualiza a cada 3 segundos
+        // Atualiza a cada 1 segundo
 
         setInterval(
             atualizarTudo,
-            3000
+            1000
         );
 
     </script>
@@ -1033,4 +1049,3 @@
 </body>
 
 </html>
-
